@@ -8,11 +8,21 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-@WebServlet("/login")  // Maps HTTP requests to /login to this servlet
+@WebServlet("/login")
 public class AuthServlet extends HttpServlet {
-    private static final long serialVersionUID = 6062894120451688816L; // Serial version UID for serialization
+    private static final long serialVersionUID = 6062894120451688816L;
 
+    // Database connection parameters
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/customerdb";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "root";
+    
     /**
      * Handles POST requests for user authentication.
      *
@@ -32,8 +42,8 @@ public class AuthServlet extends HttpServlet {
         System.out.println("Login ID: " + loginId);
         System.out.println("Password: " + password);
 
-        // Simple hardcoded authentication logic for demonstration purposes
-        if ("test@sunbasedata.com".equals(loginId) && "Test@123".equals(password)) {
+        // Validate credentials using the method defined below
+        if (validateCredentials(loginId, password)) {
             // Generate a JWT token for the authenticated user
             String token = JWTUtil.generateToken(loginId);
             
@@ -49,5 +59,59 @@ public class AuthServlet extends HttpServlet {
             // Redirect to the login page if authentication fails
             response.sendRedirect("login.jsp");
         }
+    }
+
+    /**
+     * Validates the login credentials against the admin table in the database.
+     *
+     * @param email    The email address provided by the user.
+     * @param password The password provided by the user.
+     * @return true if the credentials are valid, false otherwise.
+     */
+    private boolean validateCredentials(String email, String password) {
+        boolean isValid = false;
+        String sql = "SELECT * FROM admin WHERE email = ? AND password = ?";
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            // Load the JDBC driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            // Establish the connection
+            connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            // Prepare the statement
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, email);
+            statement.setString(2, password);
+
+            // Execute the query
+            resultSet = statement.executeQuery();
+
+            // Check if credentials are valid
+            isValid = resultSet.next();
+
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            // Close resources to prevent memory leaks
+            try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (statement != null) {
+                    statement.close();
+                }
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return isValid;
     }
 }
