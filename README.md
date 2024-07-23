@@ -101,9 +101,6 @@ CustomerCRUDApp/
 ## Contributing
 Feel free to fork this repository and contribute by submitting pull requests. Any improvements and suggestions are welcome!
 
-## License
-This project is licensed under the MIT License.
-
 ## Acknowledgements
 - **OpenAI's ChatGPT**: For providing assistance in resolving issues and improving the project.
 - **Stack Overflow**: For providing valuable resources and solutions to various coding challenges.
