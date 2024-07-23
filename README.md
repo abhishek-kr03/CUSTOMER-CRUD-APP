@@ -116,6 +116,8 @@ Feel free to modify the README content according to your specific details and pr
 
 ![Screenshot 2024-07-23 104448](https://github.com/user-attachments/assets/f51f8766-4059-4be8-a89f-6e32d055b031)
 
+![Screenshot 2024-07-23 104542](https://github.com/user-attachments/assets/ae53deea-7b15-4bd1-b95d-ad37ea58648a)
+
 ![Screenshot 2024-07-23 104616](https://github.com/user-attachments/assets/e000451b-f6c1-4855-8169-451ea36306b6)
 
 ![Screenshot 2024-07-23 104646](https://github.com/user-attachments/assets/9a9f5adb-f5e8-46be-8c6d-97b3179cba3c)
