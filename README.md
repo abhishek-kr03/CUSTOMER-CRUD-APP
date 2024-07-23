@@ -41,15 +41,15 @@ CustomerCRUDApp/
 │   │   │   ├── images/
 │   │   │   │   ├── edit.png
 │   │   │   │   ├── delete.png
-│   │   │   ├── jsp/
-│   │   │   │   ├── addCustomer.jsp
-│   │   │   │   ├── index.jsp
-│   │   │   │   ├── listCustomers.jsp
-│   │   │   │   ├── login.jsp
-│   │   │   │   ├── updateCustomer.jsp
+│   │   │   ├── addCustomer.jsp
+│   │   │   ├── index.jsp
+│   │   │   ├── listCustomers.jsp
+│   │   │   ├── login.jsp
+│   │   │   ├── updateCustomer.jsp
 │   │   │   ├── styles.css
 ├── pom.xml
 └── README.md
+
 ```
 
 ## Technologies Used
