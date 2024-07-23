@@ -10,10 +10,9 @@
 		}
 		a{
 			text-decoration: none;
-			border: 2px solid black;
 			background-color: white;
 			padding: 0.5rem 1rem;
-			border-radius: 10px
+			border-radius: 12px
 		}
     </style>
     

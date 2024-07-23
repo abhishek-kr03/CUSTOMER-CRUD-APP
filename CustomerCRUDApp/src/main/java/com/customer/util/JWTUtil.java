@@ -1,6 +1,5 @@
 package com.customer.util;
 
-import java.util.Date;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -24,8 +23,6 @@ public class JWTUtil {
             // Create and sign the JWT with the provided login ID
             return JWT.create()
                     .withSubject(loginId)  // Set the subject (user identifier)
-                    .withIssuedAt(new Date())  // Set the issued date to the current date
-                    .withExpiresAt(new Date(System.currentTimeMillis() + 86400000))  // Set the expiration date (1 day later)
                     .sign(algorithm);  // Sign the JWT with the algorithm
         } catch (Exception exception) {
             // Print the stack trace and return null if an exception occurs

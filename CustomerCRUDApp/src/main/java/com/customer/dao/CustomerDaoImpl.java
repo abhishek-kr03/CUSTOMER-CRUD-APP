@@ -6,90 +6,89 @@ import java.util.List;
 import com.customer.model.Customer;
 
 public class CustomerDaoImpl implements CustomerDao {
-    private static final String URL = "jdbc:mysql://localhost:3306/customerdb";
-    private static final String USER = "root";
-    private static final String PASSWORD = "root";
-    private int noOfRecords;
+    private static final String URL = "jdbc:mysql://localhost:3306/customerdb"; // Database URL
+    private static final String USER = "root"; // Database username
+    private static final String PASSWORD = "root"; // Database password
+    private int noOfRecords; // Variable to store the number of records
 
-    static {
+    // Database connection variables
+    private Connection connection;
+    private PreparedStatement preparedStatement;
+    private Statement statement;
+    private ResultSet resultSet;
+
+    // SQL queries
+    private String insertQuery = "INSERT INTO customers (uuid, first_name, last_name, street, address, city, state, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private String updateQuery = "UPDATE customers SET uuid = ?, first_name = ?, last_name = ?, street = ?, address = ?, city = ?, state = ?, email = ?, phone = ? WHERE id = ?";
+    private String deleteQuery = "DELETE FROM customers WHERE id = ?";
+    private String selectQuery = "SELECT * FROM customers WHERE id = ?";
+    private String listAllQuery = "SELECT * FROM customers ORDER BY %s %s LIMIT ?, ?";
+    private String countQuery = "SELECT COUNT(*) FROM customers";
+    private String findByUuidQuery = "SELECT * FROM customers WHERE uuid = ?";
+
+    // Constructor to initialize the database connection
+    public CustomerDaoImpl() {
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
+            Class.forName("com.mysql.cj.jdbc.Driver"); // Load MySQL JDBC driver
+            connection = DriverManager.getConnection(URL, USER, PASSWORD); // Establish connection
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
-    }
-
+    // Method to list all customers with pagination and sorting
+    @Override
     public List<Customer> listAllCustomers(int page, int pageSize, String sortField, String sortOrder) {
         List<Customer> customers = new ArrayList<>();
-        String sql = "SELECT * FROM customers ORDER BY " + sortField + " " + sortOrder +
-                     " LIMIT ?, ?";
+        String sql = String.format(listAllQuery, sortField, sortOrder); // Format the query with sort field and order
 
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, (page - 1) * pageSize); // Set offset for pagination
+            preparedStatement.setInt(2, pageSize); // Set limit for pagination
 
-            pstmt.setInt(1, (page - 1) * pageSize);
-            pstmt.setInt(2, pageSize);
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Customer customer = new Customer();
-                    customer.setId(rs.getInt("id"));
-                    customer.setUuid(rs.getString("uuid"));
-                    customer.setFirstName(rs.getString("first_name"));
-                    customer.setLastName(rs.getString("last_name"));
-                    customer.setStreet(rs.getString("street"));
-                    customer.setAddress(rs.getString("address"));
-                    customer.setCity(rs.getString("city"));
-                    customer.setState(rs.getString("state"));
-                    customer.setEmail(rs.getString("email"));
-                    customer.setPhone(rs.getString("phone"));
-                    customers.add(customer);
-                }
+            resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                Customer customer = extractCustomerFromResultSet(resultSet); // Extract customer data from ResultSet
+                customers.add(customer);
             }
 
             // Count the total number of records
-            String countSql = "SELECT COUNT(*) FROM customers";
-            try (Statement countStmt = conn.createStatement();
-                 ResultSet countRs = countStmt.executeQuery(countSql)) {
-
-                if (countRs.next()) {
-                    this.noOfRecords = countRs.getInt(1);
-                }
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(countQuery);
+            if (resultSet.next()) {
+                this.noOfRecords = resultSet.getInt(1); // Set the number of records
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return customers;
+        return customers; // Return the list of customers
     }
 
+    // Method to get the number of records
+    @Override
     public int getNoOfRecords() {
         return noOfRecords;
     }
 
-    // other methods (addCustomer, updateCustomer, deleteCustomer, getCustomerById) remain unchanged
-
+    // Method to add a new customer
+    @Override
     public void addCustomer(Customer customer) {
-        String sql = "INSERT INTO customers (uuid, first_name, last_name, street, address, city, state, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, customer.getUuid());
-            pstmt.setString(2, customer.getFirstName());
-            pstmt.setString(3, customer.getLastName());
-            pstmt.setString(4, customer.getStreet());
-            pstmt.setString(5, customer.getAddress());
-            pstmt.setString(6, customer.getCity());
-            pstmt.setString(7, customer.getState());
-            pstmt.setString(8, customer.getEmail());
-            pstmt.setString(9, customer.getPhone());
-            pstmt.executeUpdate();
+        try {
+            preparedStatement = connection.prepareStatement(insertQuery);
+            // Set the parameters for the insert query
+            preparedStatement.setString(1, customer.getUuid());
+            preparedStatement.setString(2, customer.getFirstName());
+            preparedStatement.setString(3, customer.getLastName());
+            preparedStatement.setString(4, customer.getStreet());
+            preparedStatement.setString(5, customer.getAddress());
+            preparedStatement.setString(6, customer.getCity());
+            preparedStatement.setString(7, customer.getState());
+            preparedStatement.setString(8, customer.getEmail());
+            preparedStatement.setString(9, customer.getPhone());
+            preparedStatement.executeUpdate(); // Execute the query
 
             System.out.println("Customer added successfully!");
 
@@ -99,104 +98,130 @@ public class CustomerDaoImpl implements CustomerDao {
         }
     }
 
+    // Method to update an existing customer
+    @Override
     public void updateCustomer(Customer customer) {
-        String sql = "UPDATE customers SET uuid = ?, first_name = ?, last_name = ?, street = ?, address = ?, city = ?, state = ?, email = ?, phone = ? WHERE id = ?";
-
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, customer.getUuid());
-            pstmt.setString(2, customer.getFirstName());
-            pstmt.setString(3, customer.getLastName());
-            pstmt.setString(4, customer.getStreet());
-            pstmt.setString(5, customer.getAddress());
-            pstmt.setString(6, customer.getCity());
-            pstmt.setString(7, customer.getState());
-            pstmt.setString(8, customer.getEmail());
-            pstmt.setString(9, customer.getPhone());
-            pstmt.setInt(10, customer.getId());
-            pstmt.executeUpdate();
+        try {
+            preparedStatement = connection.prepareStatement(updateQuery);
+            // Set the parameters for the update query
+            preparedStatement.setString(1, customer.getUuid());
+            preparedStatement.setString(2, customer.getFirstName());
+            preparedStatement.setString(3, customer.getLastName());
+            preparedStatement.setString(4, customer.getStreet());
+            preparedStatement.setString(5, customer.getAddress());
+            preparedStatement.setString(6, customer.getCity());
+            preparedStatement.setString(7, customer.getState());
+            preparedStatement.setString(8, customer.getEmail());
+            preparedStatement.setString(9, customer.getPhone());
+            preparedStatement.setInt(10, customer.getId());
+            preparedStatement.executeUpdate(); // Execute the query
 
         } catch (SQLException e) {
             e.printStackTrace();
+            System.err.println("Error updating customer: " + e.getMessage());
         }
     }
 
+    // Method to delete a customer by ID
+    @Override
     public void deleteCustomer(int id) {
-        String sql = "DELETE FROM customers WHERE id = ?";
-
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, id);
-            pstmt.executeUpdate();
+        try {
+            preparedStatement = connection.prepareStatement(deleteQuery);
+            preparedStatement.setInt(1, id); // Set the ID parameter
+            preparedStatement.executeUpdate(); // Execute the query
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
+    // Method to get a customer by ID
+    @Override
     public Customer getCustomerById(int id) {
         Customer customer = null;
-        String sql = "SELECT * FROM customers WHERE id = ?";
 
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try {
+            preparedStatement = connection.prepareStatement(selectQuery);
+            preparedStatement.setInt(1, id); // Set the ID parameter
+            resultSet = preparedStatement.executeQuery();
 
-            pstmt.setInt(1, id);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                customer = new Customer();
-                customer.setId(rs.getInt("id"));
-                customer.setUuid(rs.getString("uuid"));
-                customer.setFirstName(rs.getString("first_name"));
-                customer.setLastName(rs.getString("last_name"));
-                customer.setStreet(rs.getString("street"));
-                customer.setAddress(rs.getString("address"));
-                customer.setCity(rs.getString("city"));
-                customer.setState(rs.getString("state"));
-                customer.setEmail(rs.getString("email"));
-                customer.setPhone(rs.getString("phone"));
+            if (resultSet.next()) {
+                customer = extractCustomerFromResultSet(resultSet); // Extract customer data from ResultSet
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return customer;
+        return customer; // Return the customer
     }
-    
- // In CustomerDaoImpl.java
+
+    // Method to find customers by UUID
+    @Override
     public List<Customer> findCustomerByUuid(String uuid) {
         List<Customer> customers = new ArrayList<>();
-        String query = "SELECT * FROM customers WHERE uuid = ?";
 
-        try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
+        try {
+            preparedStatement = connection.prepareStatement(findByUuidQuery);
+            preparedStatement.setString(1, uuid); // Set the UUID parameter
+            resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                Customer customer = extractCustomerFromResultSet(resultSet); // Extract customer data from ResultSet
+                customers.add(customer);
+            }
 
-            statement.setString(1, uuid);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    Customer customer = new Customer();
-                    customer.setId(resultSet.getInt("id"));
-                    customer.setUuid(resultSet.getString("uuid"));
-                    customer.setFirstName(resultSet.getString("first_name"));
-                    customer.setLastName(resultSet.getString("last_name"));
-                    customer.setStreet(resultSet.getString("street"));
-                    customer.setAddress(resultSet.getString("address"));
-                    customer.setCity(resultSet.getString("city"));
-                    customer.setState(resultSet.getString("state"));
-                    customer.setEmail(resultSet.getString("email"));
-                    customer.setPhone(resultSet.getString("phone"));
-                    customers.add(customer);
-                }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return customers; // Return the list of customers
+    }
+
+    // Method to extract customer data from ResultSet
+    private Customer extractCustomerFromResultSet(ResultSet resultSet) throws SQLException {
+        Customer customer = new Customer();
+        customer.setId(resultSet.getInt("id"));
+        customer.setUuid(resultSet.getString("uuid"));
+        customer.setFirstName(resultSet.getString("first_name"));
+        customer.setLastName(resultSet.getString("last_name"));
+        customer.setStreet(resultSet.getString("street"));
+        customer.setAddress(resultSet.getString("address"));
+        customer.setCity(resultSet.getString("city"));
+        customer.setState(resultSet.getString("state"));
+        customer.setEmail(resultSet.getString("email"));
+        customer.setPhone(resultSet.getString("phone"));
+        return customer; // Return the customer
+    }
+
+    // Method to close all database resources
+    public void close() {
+        try {
+            if (connection != null) {
+                connection.close(); // Close the connection
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return customers;
+        try {
+            if (preparedStatement != null) {
+                preparedStatement.close(); // Close the PreparedStatement
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            if (statement != null) {
+                statement.close(); // Close the Statement
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            if (resultSet != null) {
+                resultSet.close(); // Close the ResultSet
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
-
-
 }
